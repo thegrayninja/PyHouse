@@ -163,7 +163,7 @@ def NmapScans(IPAddress, OpenPorts):
             try:
                 NmapResults += ScanCommand + " is initiating at " + time.strftime('%X %x %Z')
                 NmapResults += (subprocess.check_output((ScanCommand), shell=True)).strip()
-                NmapResults += "\n####################\n"
+                NmapResults += "\n\n####################\n\n####################\n\n"
             except:
                 print("%s FAILED!! Reasons unknown." % ScanCommand)
 
@@ -190,7 +190,7 @@ def NmapScans(IPAddress, OpenPorts):
                     except:
                         print("%s FAILED!! Reasons unknown." % ScanCommand)
 
-    print(NmapResults)
+    #print(NmapResults)
     NmapFileName = NmapFolderName + "/nmap_results_%s.txt" % IPAddress
     SaveDataToFile(NmapResults, NmapFileName)
 
