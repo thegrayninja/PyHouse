@@ -18,6 +18,7 @@ def main():
     CheckPythonVersion()
     FileNameIPAddress = "ipaddress.txt"
     IPAddresses = GetIPAddressesFromFile(FileNameIPAddress)
+    print(IPAddresses)
     for IP in IPAddresses:
         CommandList(IP.strip())
 
@@ -33,7 +34,7 @@ def CheckPythonVersion():
     if PyVerTuple[0] < 3:
         return 0
     else:
-        print("\n\nPlease run Python 2.x or newer. Currently not built for 3.x\n")
+        print("\n\nPlease run Python 2.x. Currently not built for 3.x\n")
         sys.exit(1)
 
 def GetOSVersion():
@@ -71,6 +72,8 @@ def CreateIPFolder(IPAddress):
             os.makedirs(SaveFolder)
             print("Folder ./%s has been created!" % IPAddress)
 
+
+
 def CreateToolFolder():
     print("based on commands")
 
@@ -85,15 +88,14 @@ def CreateToolFolder():
 
 def GetIPAddressesFromFile(FileNameIPAddress):
     print("...Getting IP Address from file...")
-    IPAddressList = []
     TempFile = open(FileNameIPAddress, 'r')
-    IPAddressList.append(TempFile.read())
+    IPAddressList = TempFile.readlines()
     TempFile.close()
-    return (IPAddressList)
+    return IPAddressList
 
 def DetermineOpenPorts(IPAddress):
     print("...Running initial nmap scan against %s..." % IPAddress)
-    NmapCommand = "nmap -Pn -p 80,443,22 %s" % IPAddress
+    NmapCommand = "nmap -Pn %s" % IPAddress
     NmapResults = subprocess.check_output((NmapCommand), shell=True)
     FileName = "./%s/OpenPorts_%s.txt" % (IPAddress, IPAddress)
     SaveDataToFile(NmapResults.strip(), FileName)
@@ -132,8 +134,10 @@ def CommandList(IPAddress):
     OpenWebPorts = GetOpenWebPorts(OpenPorts)
     NmapScans(IPAddress, OpenPorts, OpenWebPorts)
     CurlRequests(IPAddress, OpenPorts, OpenWebPorts)
+    DirBusterScan(IPAddress, OpenPorts, OpenWebPorts)
 
-    print("...Scanning for %s has completed." % IPAddress)
+
+    print("\n...Scanning for %s has completed.\n\n" % IPAddress)
 
 def GetOpenWebPorts(OpenPorts):
     WebPorts = ['80', '8080', '8888', '8181', '443', '8443']
@@ -318,6 +322,44 @@ def CurlRequests(IPAddress, OpenPorts, WebServerPortsOpen):
 
                         except:
                             print("%s FAILED!! Reasons unknown." % RequestCommand)
+
+
+def DirBusterScan(IPAddress, OpenPorts, WebServerPortsOpen):
+    print("\n\n\n***************\nDirBuster - Web Directory Discovery\n***************\n\n")
+    if WebServerPortsOpen == 0:
+        print("Skipping DirBuster commands as 0 web server related ports were identified. ")
+    else:
+        DirbFolderName = IPAddress + "/dirb"
+        CreateIPFolder(DirbFolderName)
+        WebPorts = ['80', '8080', '8888', '8181']
+        SSLPorts = ['443', '8443']
+        UserResponseDirb = raw_input("Would you like to brute force possible directories? (DirBuster)? (y/n): ")
+        print("\n")
+        if 'y' in UserResponseDirb[0].lower():
+            SSLOpenPorts = 0
+            for Port in SSLPorts:
+                for OPort in OpenPorts:
+                    if Port == OPort:
+                        if SSLOpenPorts == 1:
+                            print("\n...Skipping Dirb on port %s. Already scanned site." % Port)
+                        else:
+                            SSLOpenPorts = 1
+                            print("\n...Running Dirb on port %s. Please be patient.\n" % Port)
+                            DirbCommand = "dirb https://%s ./music_dir.txt" % IPAddress #-r -o ./%s/dirb/dirb_output_%s.txt" % (IPAddress, IPAddress, IPAddress)
+                            DirbResults = DirbCommand + " is initiating at " + time.strftime('%X %x %Z') + "\n"
+                            DirbResults += (subprocess.check_output((DirbCommand), shell=True)).strip()
+                            #print(DirbResults)
+                            DirbFileName = DirbFolderName + "/dirb_results_%s.txt" % IPAddress
+                            print("...Saving Curl Data to file...")
+                            SaveDataToFile(DirbResults, DirbFileName)
+            if SSLOpenPorts == 0:
+                for Port in WebPorts:
+                    for OPort in OpenPorts:
+                        if Port == OpenPorts:
+                            if SSLOpenPorts == 1:
+                                print("\n...Skipping Dirb on port %s. Already scanned site." % Port)
+                            else:
+                                print("\n...Running dirb on port %s." % Port)
 
 ####
 ####
